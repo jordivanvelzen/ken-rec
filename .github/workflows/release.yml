@@ -39,6 +39,9 @@ jobs:
         run: |
           mkdir dist
           cp app/build/outputs/apk/release/app-release.apk "dist/ken-rec-${GITHUB_REF_NAME}.apk"
+          # The same file under a name that never changes, so a link to
+          # releases/latest/download/ken-rec.apk always gets the newest version.
+          cp app/build/outputs/apk/release/app-release.apk dist/ken-rec.apk
           (cd dist && sha256sum ./*.apk > SHA256SUMS.txt)
 
       - uses: actions/upload-artifact@v4
