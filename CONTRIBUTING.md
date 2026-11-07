@@ -7,7 +7,7 @@ Thanks for helping. Ken Rec is a small app, so the rules are small too.
 1. Clone the repository.
 2. Open the project in Android Studio, or build from a terminal: `./gradlew assembleDebug`.
 3. The app needs a real phone to test recording. The emulator camera is not good enough for this.
-4. A recording restarts after 45 minutes. To test that without waiting, build with a short limit:
+4. A recording restarts after 45 minutes unless Settings says otherwise. To test that without waiting, build with a short limit:
    `./gradlew assembleDebug -PmaxRecordingMs=150000` (150 seconds; the restart button appears for the last 90).
 
 ## Making a change

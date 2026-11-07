@@ -7,12 +7,12 @@ you see only the last bit, trim it in seconds, and only that clip is kept.
 
 ## How it works
 
-1. Press record and practise. After 45 minutes the recording restarts by itself and the old one is thrown away, so the phone never fills up. In the last 90 seconds before that, a "Restart now" button appears on the screen.
+1. Press record and practise. After 45 minutes (you can pick 15, 30, 45 or 60 in Settings) the recording restarts by itself and the old one is thrown away, so the phone never fills up. In the last 90 seconds before that, a "Restart now" button appears on the screen.
 2. Press stop. You see the last 90 seconds, with the last 30 already selected.
 3. Drag the two handles, or use the - and + buttons, to set the start and end. Play it to check.
 4. Press save. The clip goes to your gallery in the album "Ken Rec", and the long recording is deleted.
 
-Nothing is uploaded anywhere.
+Nothing is uploaded anywhere. In Settings you can also choose the video quality: small files (720p), standard (1080p) or best (the phone's own quality), each with a rough size per hour.
 
 **Status:** early. Android only, tested on one phone so far.
 

@@ -21,6 +21,7 @@ import com.kendamasenses.kenrec.R
 fun KenRecApp() {
     var trimPath by rememberSaveable { mutableStateOf<String?>(null) }
     var banner by remember { mutableStateOf<String?>(null) }
+    var showSettings by rememberSaveable { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize().background(Senses.BgDeep)) {
         // The website's own page background (a soft textured teal), not a flat colour.
@@ -32,8 +33,14 @@ fun KenRecApp() {
         )
         Box(Modifier.fillMaxSize().safeDrawingPadding()) {
         val path = trimPath
-        if (path == null) {
-            RecordScreen(banner = banner, onRecorded = { banner = null; trimPath = it })
+        if (showSettings) {
+            SettingsScreen(onBack = { showSettings = false })
+        } else if (path == null) {
+            RecordScreen(
+                banner = banner,
+                onRecorded = { banner = null; trimPath = it },
+                onOpenSettings = { showSettings = true },
+            )
         } else {
             TrimScreen(
                 rawPath = path,

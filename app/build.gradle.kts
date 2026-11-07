@@ -15,10 +15,10 @@ android {
         versionCode = 1
         versionName = "0.1.0"
 
-        // A recording restarts after this long. Testers can shorten it:
+        // Test builds can force a short restart time, in milliseconds (0 = use the setting):
         //   ./gradlew assembleDebug -PmaxRecordingMs=150000
-        val maxRecordingMs = (project.findProperty("maxRecordingMs") as String?)?.toLongOrNull() ?: 2_700_000L
-        buildConfigField("long", "MAX_RECORDING_MS", "${maxRecordingMs}L")
+        val maxRecordingMs = (project.findProperty("maxRecordingMs") as String?)?.toLongOrNull() ?: 0L
+        buildConfigField("long", "MAX_RECORDING_MS_OVERRIDE", "${maxRecordingMs}L")
     }
 
     buildTypes {

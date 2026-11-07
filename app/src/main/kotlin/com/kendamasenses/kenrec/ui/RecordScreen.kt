@@ -36,6 +36,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -58,17 +59,11 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.kendamasenses.kenrec.BuildConfig
+import com.kendamasenses.kenrec.AppSettings
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import kotlin.coroutines.resume
-
-/**
- * After this long a recording restarts by itself and the old one is thrown away, so one forgotten
- * session cannot fill the phone (45 minutes unless a test build says otherwise).
- */
-private val MAX_RECORDING_MS = BuildConfig.MAX_RECORDING_MS
 
 /** In the last stretch before the restart, the screen offers to restart right away. */
 private const val RESTART_WARNING_MS = 90_000L
@@ -80,7 +75,7 @@ private fun has(context: Context, permission: String) =
     ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
 @Composable
-fun RecordScreen(banner: String?, onRecorded: (String) -> Unit) {
+fun RecordScreen(banner: String?, onRecorded: (String) -> Unit, onOpenSettings: () -> Unit) {
     val context = LocalContext.current
     var cameraOk by remember { mutableStateOf(has(context, Manifest.permission.CAMERA)) }
     var micOk by remember { mutableStateOf(has(context, Manifest.permission.RECORD_AUDIO)) }
@@ -101,7 +96,7 @@ fun RecordScreen(banner: String?, onRecorded: (String) -> Unit) {
         Logo()
         Spacer(Modifier.height(12.dp))
         if (cameraOk) {
-            CameraBody(micOk = micOk, banner = banner, onRecorded = onRecorded)
+            CameraBody(micOk = micOk, banner = banner, onRecorded = onRecorded, onOpenSettings = onOpenSettings)
         } else {
             Column(
                 Modifier.weight(1f).fillMaxWidth(),
@@ -139,18 +134,27 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
     micOk: Boolean,
     banner: String?,
     onRecorded: (String) -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    // Read once when the camera screen opens: changes in Settings apply to the next recording.
+    val settings = remember { AppSettings(context) }
+    val quality = remember { settings.quality }
+    val maxMs = remember { settings.restartAfterMs }
     val previewView = remember { PreviewView(context).apply { scaleType = PreviewView.ScaleType.FIT_CENTER } }
     val recorder = remember {
-        Recorder.Builder()
-            .setQualitySelector(
-                QualitySelector.fromOrderedList(
-                    listOf(Quality.FHD, Quality.HD, Quality.SD),
-                    FallbackStrategy.lowerQualityOrHigherThan(Quality.SD),
-                ),
+        val selector = if (quality.maxHeight <= 720) {
+            QualitySelector.from(Quality.HD, FallbackStrategy.lowerQualityOrHigherThan(Quality.SD))
+        } else {
+            QualitySelector.fromOrderedList(
+                listOf(Quality.FHD, Quality.HD, Quality.SD),
+                FallbackStrategy.lowerQualityOrHigherThan(Quality.SD),
             )
+        }
+        Recorder.Builder()
+            .setQualitySelector(selector)
+            .apply { quality.targetBitsPerSecond?.let { setTargetVideoEncodingBitRate(it) } }
             .build()
     }
     val videoCapture = remember { VideoCapture.withOutput(recorder) }
@@ -205,7 +209,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
         error = null
         elapsedMs = 0
         val file = File(context.cacheDir, "rec_${System.currentTimeMillis()}.mp4")
-        val options = FileOutputOptions.Builder(file).setDurationLimitMillis(MAX_RECORDING_MS).build()
+        val options = FileOutputOptions.Builder(file).setDurationLimitMillis(maxMs).build()
         var pending = recorder.prepareRecording(context, options)
         if (micOk) pending = pending.withAudioEnabled()
         recording = pending.start(ContextCompat.getMainExecutor(context)) { event ->
@@ -260,9 +264,9 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
                 Spacer(Modifier.size(8.dp))
                 Text(formatClock(elapsedMs), color = Senses.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             }
-            if (elapsedMs >= MAX_RECORDING_MS - RESTART_WARNING_MS && !stopping) {
+            if (elapsedMs >= maxMs - RESTART_WARNING_MS && !stopping) {
                 RestartBanner(
-                    remainingMs = (MAX_RECORDING_MS - elapsedMs).coerceAtLeast(0),
+                    remainingMs = (maxMs - elapsedMs).coerceAtLeast(0),
                     onRestart = {
                         restarting = true
                         stopping = true
@@ -272,6 +276,12 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
                 )
             }
         } else {
+            RoundIconButton(
+                icon = Icons.Default.Settings,
+                description = "Settings",
+                onClick = onOpenSettings,
+                modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
+            )
             RoundIconButton(
                 icon = Icons.Default.Refresh,
                 description = "Flip camera",
