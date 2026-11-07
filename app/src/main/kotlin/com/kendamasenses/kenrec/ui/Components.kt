@@ -73,10 +73,10 @@ fun RoundIconButton(icon: ImageVector, description: String, onClick: () -> Unit,
 
 /** A round 44dp button with a short text, for the nudge controls. */
 @Composable
-fun RoundTextButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun RoundTextButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier, diameter: androidx.compose.ui.unit.Dp = 44.dp) {
     Box(
         modifier = modifier
-            .size(44.dp)
+            .size(diameter)
             .clip(CircleShape)
             .background(Senses.Surface)
             .border(1.dp, Senses.Border, CircleShape)

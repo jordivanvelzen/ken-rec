@@ -274,12 +274,6 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
             modifier = Modifier.fillMaxWidth(),
         )
     }
-    Spacer(Modifier.height(8.dp))
-    Text(
-        "When you stop, you see the last 90 seconds to trim. A recording stops by itself after 30 minutes.",
-        color = Senses.InkMute,
-        fontSize = 12.sp,
-    )
 }
 
 internal fun formatClock(ms: Long): String {

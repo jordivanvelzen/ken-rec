@@ -1,6 +1,7 @@
 package com.kendamasenses.kenrec.ui
 
 import android.media.MediaMetadataRetriever
+import android.util.Log
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
@@ -165,10 +166,12 @@ fun TrimScreen(rawPath: String, onSaved: () -> Unit, onDiscard: () -> Unit) {
             val cut = File(context.cacheDir, "cut_${System.currentTimeMillis()}.mp4")
             try {
                 phase = Phase.Cutting
+                Log.i("KenRec", "cut: recording=${totalMs}ms start=${startMs}ms end=${endMs}ms")
                 withContext(Dispatchers.IO) {
                     StreamTrim.trim(raw.absolutePath, cut.absolutePath, startMs * 1000, endMs * 1000)
                 }
                 phase = Phase.Saving
+                Log.i("KenRec", "cut done: ${readDurationMs(cut)}ms")
                 withContext(Dispatchers.IO) { MediaStoreSaver.saveVideo(context, cut) }
                 cut.delete()
                 raw.delete()
@@ -235,9 +238,9 @@ fun TrimScreen(rawPath: String, onSaved: () -> Unit, onDiscard: () -> Unit) {
             onEnd = ::setEnd,
         )
         Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Nudge("Start", formatClock(startMs), onMinus = { setStart(startMs - 1000) }, onPlus = { setStart(startMs + 1000) })
-            Nudge("End", formatClock(endMs), onMinus = { setEnd(endMs - 1000) }, onPlus = { setEnd(endMs + 1000) })
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Nudge("Start", formatClock(startMs), Modifier.weight(1f), onMinus = { setStart(startMs - 1000) }, onPlus = { setStart(startMs + 1000) })
+            Nudge("End", formatClock(endMs), Modifier.weight(1f), onMinus = { setEnd(endMs - 1000) }, onPlus = { setEnd(endMs + 1000) })
         }
         Spacer(Modifier.height(4.dp))
         Text(
@@ -291,13 +294,13 @@ fun TrimScreen(rawPath: String, onSaved: () -> Unit, onDiscard: () -> Unit) {
 }
 
 @Composable
-private fun Nudge(label: String, value: String, onMinus: () -> Unit, onPlus: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun Nudge(label: String, value: String, modifier: Modifier, onMinus: () -> Unit, onPlus: () -> Unit) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(label, color = Senses.InkMute, fontSize = 12.sp)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            RoundTextButton("-", onMinus)
-            Text(value, color = Senses.Ink, fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.width(48.dp))
-            RoundTextButton("+", onPlus)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            RoundTextButton("-", onMinus, diameter = 40.dp)
+            Text(value, color = Senses.Ink, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            RoundTextButton("+", onPlus, diameter = 40.dp)
         }
     }
 }
