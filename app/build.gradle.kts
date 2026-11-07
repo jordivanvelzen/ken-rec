@@ -21,11 +21,26 @@ android {
         buildConfigField("long", "MAX_RECORDING_MS_OVERRIDE", "${maxRecordingMs}L")
     }
 
+    // Release signing. The key lives outside the repository: set these four environment
+    // variables to sign a release build. Without them a release build is signed with the
+    // debug key, which is fine for trying it out but not for sharing.
+    //   KEN_REC_KEYSTORE, KEN_REC_KEY_ALIAS, KEN_REC_KEYSTORE_PASSWORD, KEN_REC_KEY_PASSWORD
+    val keystorePath = System.getenv("KEN_REC_KEYSTORE")
+    signingConfigs {
+        if (keystorePath != null) {
+            create("release") {
+                storeFile = file(keystorePath)
+                keyAlias = System.getenv("KEN_REC_KEY_ALIAS")
+                storePassword = System.getenv("KEN_REC_KEYSTORE_PASSWORD")
+                keyPassword = System.getenv("KEN_REC_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
-            // Sideloaded builds: signed with the debug key until a release key exists.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
 
