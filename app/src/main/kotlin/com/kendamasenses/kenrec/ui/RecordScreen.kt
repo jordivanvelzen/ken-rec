@@ -58,13 +58,20 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.kendamasenses.kenrec.BuildConfig
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import kotlin.coroutines.resume
 
-/** A recording stops by itself after this long, so one forgotten session cannot fill the phone. */
-private const val MAX_RECORDING_MS = 30 * 60 * 1000L
+/**
+ * After this long a recording restarts by itself and the old one is thrown away, so one forgotten
+ * session cannot fill the phone (45 minutes unless a test build says otherwise).
+ */
+private val MAX_RECORDING_MS = BuildConfig.MAX_RECORDING_MS
+
+/** In the last stretch before the restart, the screen offers to restart right away. */
+private const val RESTART_WARNING_MS = 90_000L
 
 /** How long a stop may take before we give up and let the person try again. */
 private const val STOP_TIMEOUT_MS = 20_000L
@@ -152,6 +159,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
     var rebind by remember { mutableIntStateOf(0) }
     var recording by remember { mutableStateOf<Recording?>(null) }
     var stopping by remember { mutableStateOf(false) }
+    var restarting by remember { mutableStateOf(false) }
     var elapsedMs by remember { mutableLongStateOf(0L) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -185,6 +193,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
             delay(STOP_TIMEOUT_MS)
             if (stopping) {
                 stopping = false
+                restarting = false
                 recording = null
                 error = "Stopping took too long. Try again."
                 rebind++
@@ -205,8 +214,13 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
                 is VideoRecordEvent.Finalize -> {
                     recording = null
                     stopping = false
-                    val ok = !event.hasError() || event.error == VideoRecordEvent.Finalize.ERROR_DURATION_LIMIT_REACHED
-                    if (ok && file.length() > 0) {
+                    val limitReached = event.error == VideoRecordEvent.Finalize.ERROR_DURATION_LIMIT_REACHED
+                    if (restarting || limitReached) {
+                        // Throw the old recording away and start a fresh one at once.
+                        restarting = false
+                        file.delete()
+                        start()
+                    } else if (!event.hasError() && file.length() > 0) {
                         onRecorded(file.absolutePath)
                     } else {
                         file.delete()
@@ -246,6 +260,17 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
                 Spacer(Modifier.size(8.dp))
                 Text(formatClock(elapsedMs), color = Senses.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             }
+            if (elapsedMs >= MAX_RECORDING_MS - RESTART_WARNING_MS && !stopping) {
+                RestartBanner(
+                    remainingMs = (MAX_RECORDING_MS - elapsedMs).coerceAtLeast(0),
+                    onRestart = {
+                        restarting = true
+                        stopping = true
+                        recording?.stop()
+                    },
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
         } else {
             RoundIconButton(
                 icon = Icons.Default.Refresh,
@@ -279,4 +304,26 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
 internal fun formatClock(ms: Long): String {
     val s = ms / 1000
     return "%d:%02d".format(s / 60, s % 60)
+}
+
+/** Shown over the preview in the last 90 seconds before the automatic restart. */
+@Composable
+private fun RestartBanner(remainingMs: Long, onRestart: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .padding(12.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Senses.BgDeep.copy(alpha = 0.88f))
+            .padding(14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            "Restarting in ${formatClock(remainingMs)}. The old recording is thrown away.",
+            color = Senses.Ink,
+            fontSize = 13.sp,
+        )
+        Spacer(Modifier.height(10.dp))
+        PillButton("Restart now", onClick = onRestart, modifier = Modifier.fillMaxWidth())
+    }
 }

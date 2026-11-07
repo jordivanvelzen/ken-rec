@@ -14,6 +14,11 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+
+        // A recording restarts after this long. Testers can shorten it:
+        //   ./gradlew assembleDebug -PmaxRecordingMs=150000
+        val maxRecordingMs = (project.findProperty("maxRecordingMs") as String?)?.toLongOrNull() ?: 2_700_000L
+        buildConfigField("long", "MAX_RECORDING_MS", "${maxRecordingMs}L")
     }
 
     buildTypes {
@@ -29,7 +34,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
 }
 
 dependencies {
