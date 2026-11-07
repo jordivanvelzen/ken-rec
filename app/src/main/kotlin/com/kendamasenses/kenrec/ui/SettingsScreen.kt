@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kendamasenses.kenrec.AppSettings
 import com.kendamasenses.kenrec.RESTART_CHOICES
+import com.kendamasenses.kenrec.StartCamera
 import com.kendamasenses.kenrec.VideoQuality
 import com.kendamasenses.kenrec.approxGigabytes
 
@@ -42,6 +43,7 @@ private fun gb(value: Double) = "%.1f GB".format(value)
 fun SettingsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val store = remember { AppSettings(context) }
+    var camera by remember { mutableStateOf(store.startCamera) }
     var minutes by remember { mutableIntStateOf(store.restartMinutes) }
     var quality by remember { mutableStateOf(store.quality) }
     BackHandler(onBack = onBack)
@@ -58,6 +60,22 @@ fun SettingsScreen(onBack: () -> Unit) {
             RoundIconButton(Icons.AutoMirrored.Filled.ArrowBack, "Back", onBack)
             SectionTitle("Settings")
         }
+
+        Spacer(Modifier.height(24.dp))
+        Heading("Camera when the app opens")
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StartCamera.entries.forEach { c ->
+                PillButton(
+                    text = c.title,
+                    onClick = { camera = c; store.startCamera = c },
+                    style = if (c == camera) PillStyle.Primary else PillStyle.Outlined,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Note("You can still flip the camera on the camera screen. That only lasts for one recording.")
 
         Spacer(Modifier.height(24.dp))
         Heading("Restart a recording after")

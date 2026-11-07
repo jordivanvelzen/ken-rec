@@ -60,6 +60,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.kendamasenses.kenrec.AppSettings
+import com.kendamasenses.kenrec.StartCamera
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
@@ -159,7 +160,11 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
     }
     val videoCapture = remember { VideoCapture.withOutput(recorder) }
 
-    var lens by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
+    var lens by remember {
+        mutableIntStateOf(
+            if (settings.startCamera == StartCamera.Front) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK,
+        )
+    }
     var rebind by remember { mutableIntStateOf(0) }
     var recording by remember { mutableStateOf<Recording?>(null) }
     var stopping by remember { mutableStateOf(false) }
@@ -172,12 +177,10 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
         val preview = Preview.Builder().build().also { it.surfaceProvider = previewView.surfaceProvider }
         try {
             provider.unbindAll()
-            provider.bindToLifecycle(
-                lifecycleOwner,
-                CameraSelector.Builder().requireLensFacing(lens).build(),
-                preview,
-                videoCapture,
-            )
+            // A phone without the wanted camera falls back to the other one.
+            val wanted = CameraSelector.Builder().requireLensFacing(lens).build()
+            val selector = if (runCatching { provider.hasCamera(wanted) }.getOrDefault(false)) wanted else CameraSelector.DEFAULT_BACK_CAMERA
+            provider.bindToLifecycle(lifecycleOwner, selector, preview, videoCapture)
         } catch (e: Exception) {
             error = "Could not start the camera."
         }

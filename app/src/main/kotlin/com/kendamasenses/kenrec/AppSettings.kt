@@ -17,6 +17,12 @@ enum class VideoQuality(
     Best("Best", "1080p, the phone's own quality", null, 20_000_000, 1080),
 }
 
+/** Which camera the app opens on. Flipping it on the camera screen only lasts for that recording. */
+enum class StartCamera(val title: String) {
+    Front("Front"),
+    Back("Back"),
+}
+
 /** A recording restarts after one of these many minutes. */
 val RESTART_CHOICES = listOf(15, 30, 45, 60)
 const val DEFAULT_RESTART_MINUTES = 45
@@ -33,6 +39,10 @@ class AppSettings(context: Context) {
     var restartMinutes: Int
         get() = prefs.getInt("restart_minutes", DEFAULT_RESTART_MINUTES).takeIf { it in RESTART_CHOICES } ?: DEFAULT_RESTART_MINUTES
         set(value) = prefs.edit().putInt("restart_minutes", value).apply()
+
+    var startCamera: StartCamera
+        get() = StartCamera.entries.firstOrNull { it.name == prefs.getString("start_camera", null) } ?: StartCamera.Front
+        set(value) = prefs.edit().putString("start_camera", value.name).apply()
 
     var quality: VideoQuality
         get() = VideoQuality.entries.firstOrNull { it.name == prefs.getString("quality", null) } ?: VideoQuality.Standard
