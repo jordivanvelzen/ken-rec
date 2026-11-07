@@ -1,0 +1,12 @@
+Ken Rec
+Copyright 2026 Kendama Senses
+
+The code is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Third-party material:
+- Poppins font (app/src/main/res/font/): SIL Open Font License 1.1, see licenses/Poppins-OFL.txt.
+
+Not covered by the code licence:
+- The Kendama Senses name and logo (app/src/main/res/drawable-nodpi/logo_horizontal.png, the app icon
+  and the background image) are all rights reserved by Kendama Senses. If you fork the project, replace
+  them with your own.

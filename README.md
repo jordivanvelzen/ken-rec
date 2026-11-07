@@ -19,6 +19,6 @@ Install on a phone with `adb install -r app/build/outputs/apk/debug/app-debug.ap
 
 See `CONTRIBUTING.md`.
 
-## Notices
+## License
 
-See `NOTICE.md`. The Kendama Senses name and logo are not covered by the code licence.
+Apache License 2.0, see `LICENSE`. The Kendama Senses name, logo and background image are not covered by it, see `NOTICE`.

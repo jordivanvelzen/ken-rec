@@ -23,6 +23,10 @@ The app follows the Kendama Senses look: dark teal canvas, cream text, mint pill
 Colours and shapes live in `app/src/main/kotlin/com/kendamasenses/kenrec/ui/Theme.kt`. Reuse them, do not add new ones.
 Plain words in the app, no jargon.
 
+## Licence
+
+By contributing you agree that your contribution is licensed under the Apache License 2.0 (section 5 of the licence).
+
 ## Conduct
 
 Be kind and be specific. See `CODE_OF_CONDUCT.md`.
