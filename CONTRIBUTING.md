@@ -10,6 +10,15 @@ Thanks for helping. Ken Rec is a small app, so the rules are small too.
 4. A recording restarts after 45 minutes unless Settings says otherwise. To test that without waiting, build with a short limit:
    `./gradlew assembleDebug -PmaxRecordingMs=150000` (150 seconds; the restart button appears for the last 90).
 
+## Releasing (maintainers)
+
+1. Raise `versionCode` and `versionName` in `app/build.gradle.kts` and commit.
+2. Push a tag: `git tag v0.1.1 && git push origin v0.1.1`. The `release` workflow builds the signed app and
+   publishes it on the Releases page with a checksum file. Run the workflow by hand to build without publishing.
+
+The signing key is not in the repository. It is stored as repository secrets and the maintainer keeps a backup.
+Never replace it: phones that installed an app signed with another key cannot update it.
+
 ## Making a change
 
 - One change per pull request. Small is good.

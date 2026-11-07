@@ -16,6 +16,22 @@ Nothing is uploaded anywhere. In Settings you can also choose the video quality:
 
 **Status:** early. Android only, tested on one phone so far.
 
+## Install (Android)
+
+1. On your phone, open the [latest release](https://github.com/jordivanvelzen/ken-rec/releases/latest) and download the `.apk` file.
+2. Open the file. Android asks once to allow installs from your browser or files app: allow it.
+3. Android may say the app comes from an unknown developer. That is because it is not from Google Play. Tap "Install anyway".
+4. To get updates automatically, add this repository to [Obtainium](https://obtainium.imranr.dev/), a free app that installs and updates apps straight from GitHub.
+
+To check that the file is the real one, compare its signing certificate with this SHA-256 fingerprint
+(`apksigner verify --print-certs ken-rec-*.apk`):
+
+```
+64:C9:0B:8F:82:93:50:62:EE:A3:22:BC:30:E8:50:25:7F:79:0F:69:05:0C:E8:A2:E4:01:A7:DD:AB:75:17:3C
+```
+
+Each release also has a `SHA256SUMS.txt` file with the checksum of the app file.
+
 ## Build
 
 ```
