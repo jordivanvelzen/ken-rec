@@ -1,0 +1,28 @@
+# Contributing to Ken Rec
+
+Thanks for helping. Ken Rec is a small app, so the rules are small too.
+
+## Setup
+
+1. Clone the repository.
+2. Open the project in Android Studio, or build from a terminal: `./gradlew assembleDebug`.
+3. The app needs a real phone to test recording. The emulator camera is not good enough for this.
+
+## Making a change
+
+- One change per pull request. Small is good.
+- Commit messages: a short summary line in the style `fix: ...`, `feat: ...`, `docs: ...`, `chore: ...`.
+- Say in the pull request what you tested and on which phone and Android version.
+- Do not commit keys, passwords, signing files or `local.properties`.
+- Your name and email end up in the public history. GitHub offers a private no-reply address if you prefer
+  (GitHub settings, Emails, "Keep my email addresses private").
+
+## Looks and wording
+
+The app follows the Kendama Senses look: dark teal canvas, cream text, mint pill buttons, Poppins type.
+Colours and shapes live in `app/src/main/kotlin/com/kendamasenses/kenrec/ui/Theme.kt`. Reuse them, do not add new ones.
+Plain words in the app, no jargon.
+
+## Conduct
+
+Be kind and be specific. See `CODE_OF_CONDUCT.md`.
