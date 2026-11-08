@@ -75,7 +75,7 @@ fun SettingsScreen(onBack: () -> Unit) {
             }
         }
         Spacer(Modifier.height(8.dp))
-        Note("You can still flip the camera on the camera screen. That only lasts for one recording.")
+        Note("Wide is the back camera zoomed out, if your phone has a wide lens. You can still flip the camera, or switch between Normal and Wide, on the camera screen. That only lasts for one recording.")
 
         Spacer(Modifier.height(24.dp))
         Heading("Restart a recording after")

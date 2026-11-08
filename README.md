@@ -7,7 +7,7 @@ you see only the last bit, trim it in seconds, and only that clip is kept.
 
 ## How it works
 
-1. Press record and practise. After 45 minutes (you can pick 15, 30, 45 or 60 in Settings) the recording restarts by itself and the old one is thrown away, so the phone never fills up. In the last 90 seconds before that, a "Restart now" button appears on the screen.
+1. Press record and practise. The screen stays on while you record. On the back camera, a Normal / Wide switch appears if your phone has a wide lens (in Settings you can also open the app on Front, Back or Wide). After 45 minutes (you can pick 15, 30, 45 or 60 in Settings) the recording restarts by itself and the old one is thrown away, so the phone never fills up. In the last 90 seconds before that, a "Restart now" button appears on the screen.
 2. Press stop. You see the last 90 seconds, with the last 30 already selected.
 3. Drag the two handles, or use the - and + buttons, to set the start and end. Play it to check.
 4. Press save. The clip goes to your gallery in the album "Ken Rec", and the long recording is deleted.

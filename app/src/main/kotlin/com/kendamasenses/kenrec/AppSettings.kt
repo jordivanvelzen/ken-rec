@@ -21,6 +21,9 @@ enum class VideoQuality(
 enum class StartCamera(val title: String) {
     Front("Front"),
     Back("Back"),
+
+    /** The back camera zoomed out to its wide lens, on a phone that has one. */
+    BackWide("Wide"),
 }
 
 /** A recording restarts after one of these many minutes. */
