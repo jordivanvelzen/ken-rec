@@ -65,6 +65,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.kendamasenses.kenrec.AppSettings
+import com.kendamasenses.kenrec.DEFAULT_DIM_SECONDS
 import com.kendamasenses.kenrec.StartCamera
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -100,8 +101,11 @@ fun RecordScreen(banner: String?, onRecorded: (String) -> Unit, onOpenSettings: 
 
     // What the dim screen needs to know about the recording (see DimWhileRecording).
     val progress = remember { RecordingProgress() }
-    // Read once when the camera screen opens, like the other settings.
-    val dimAfterSeconds = remember { AppSettings(context).dimAfterSeconds }
+    // Read once when the camera screen opens, like the other settings. The Dim switch on the camera screen
+    // overrides it for this recording only (off, or on with the chosen time, or 30 s if Settings says Off).
+    val configuredDim = remember { AppSettings(context).dimAfterSeconds }
+    var dimOn by remember { mutableStateOf(configuredDim > 0) }
+    val dimAfterSeconds = if (dimOn) configuredDim.takeIf { it > 0 } ?: DEFAULT_DIM_SECONDS else 0
     DimWhileRecording(progress = progress, dimAfterSeconds = dimAfterSeconds) {
         Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp)) {
             Logo()
@@ -113,6 +117,8 @@ fun RecordScreen(banner: String?, onRecorded: (String) -> Unit, onOpenSettings: 
                     onRecorded = onRecorded,
                     onOpenSettings = onOpenSettings,
                     progress = progress,
+                    dimOn = dimOn,
+                    onDimChange = { dimOn = it },
                 )
             } else {
                 Column(
@@ -154,6 +160,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
     onRecorded: (String) -> Unit,
     onOpenSettings: () -> Unit,
     progress: RecordingProgress,
+    dimOn: Boolean,
+    onDimChange: (Boolean) -> Unit,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -339,6 +347,12 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
                 modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
             )
         }
+        // Dim on or off for this recording (Settings has the default). Top centre, between the corner buttons.
+        DimSwitch(
+            on = dimOn,
+            onChange = onDimChange,
+            modifier = Modifier.align(Alignment.TopCenter).padding(12.dp),
+        )
         // Back camera only, and only if the phone can zoom out. Works while recording too (it is only the zoom).
         // The restart banner takes this spot for the last 90 seconds.
         if (canWide && !showRestartBanner) {
@@ -371,6 +385,29 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
 internal fun formatClock(ms: Long): String {
     val s = ms / 1000
     return "%d:%02d".format(s / 60, s % 60)
+}
+
+/** Dim: On / Off, one pill at the top of the preview. Tapping it flips it. */
+@Composable
+private fun DimSwitch(on: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .height(44.dp)
+            .clip(RoundedCornerShape(percent = 50))
+            .background(if (on) Senses.Mint else Senses.BgDeep.copy(alpha = 0.6f))
+            .clickable(role = Role.Switch, onClickLabel = "Dim the screen while recording, now ${if (on) "on" else "off"}") {
+                onChange(!on)
+            }
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            if (on) "Dim: On" else "Dim: Off",
+            color = if (on) Senses.BgDeep else Senses.Ink,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+        )
+    }
 }
 
 /** Normal / Wide, two pills over the bottom of the preview. */
