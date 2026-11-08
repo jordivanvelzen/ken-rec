@@ -32,6 +32,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kendamasenses.kenrec.AppSettings
+import com.kendamasenses.kenrec.DIM_CHOICES
+import com.kendamasenses.kenrec.dimLabel
 import com.kendamasenses.kenrec.RESTART_CHOICES
 import com.kendamasenses.kenrec.StartCamera
 import com.kendamasenses.kenrec.VideoQuality
@@ -45,6 +47,7 @@ fun SettingsScreen(onBack: () -> Unit) {
     val store = remember { AppSettings(context) }
     var camera by remember { mutableStateOf(store.startCamera) }
     var minutes by remember { mutableIntStateOf(store.restartMinutes) }
+    var dim by remember { mutableIntStateOf(store.dimAfterSeconds) }
     var quality by remember { mutableStateOf(store.quality) }
     BackHandler(onBack = onBack)
 
@@ -92,6 +95,22 @@ fun SettingsScreen(onBack: () -> Unit) {
         }
         Spacer(Modifier.height(8.dp))
         Note("Then the old recording is thrown away and a new one starts, so the phone never fills up. A Restart now button shows in the last 90 seconds.")
+
+        Spacer(Modifier.height(24.dp))
+        Heading("Dim the screen while recording")
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DIM_CHOICES.forEach { d ->
+                PillButton(
+                    text = dimLabel(d),
+                    onClick = { dim = d; store.dimAfterSeconds = d },
+                    style = if (d == dim) PillStyle.Primary else PillStyle.Outlined,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Note("After this long without a touch, the screen goes black with a blinking red dot. That saves battery, and the recording keeps going. Tap the screen to wake it.")
 
         Spacer(Modifier.height(24.dp))
         Heading("Video quality")
