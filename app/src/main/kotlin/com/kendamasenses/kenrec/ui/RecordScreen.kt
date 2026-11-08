@@ -9,6 +9,7 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.CameraControl
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -22,6 +23,7 @@ import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,7 +43,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -165,6 +170,13 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
             if (settings.startCamera == StartCamera.Front) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK,
         )
     }
+    // The wide lens is the back camera zoomed out below 1x. Only the back camera offers it, and only
+    // on a phone whose back camera can zoom out (minZoom below 1).
+    var wide by remember { mutableStateOf(settings.startCamera == StartCamera.BackWide) }
+    var boundLens by remember { mutableIntStateOf(lens) }
+    var minZoom by remember { mutableFloatStateOf(1f) }
+    var cameraControl by remember { mutableStateOf<CameraControl?>(null) }
+    val canWide = boundLens == CameraSelector.LENS_FACING_BACK && minZoom < 0.95f
     var rebind by remember { mutableIntStateOf(0) }
     var recording by remember { mutableStateOf<Recording?>(null) }
     var stopping by remember { mutableStateOf(false) }
@@ -179,12 +191,25 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
             provider.unbindAll()
             // A phone without the wanted camera falls back to the other one.
             val wanted = CameraSelector.Builder().requireLensFacing(lens).build()
-            val selector = if (runCatching { provider.hasCamera(wanted) }.getOrDefault(false)) wanted else CameraSelector.DEFAULT_BACK_CAMERA
-            provider.bindToLifecycle(lifecycleOwner, selector, preview, videoCapture)
+            val hasWanted = runCatching { provider.hasCamera(wanted) }.getOrDefault(false)
+            val selector = if (hasWanted) wanted else CameraSelector.DEFAULT_BACK_CAMERA
+            val camera = provider.bindToLifecycle(lifecycleOwner, selector, preview, videoCapture)
+            boundLens = if (hasWanted) lens else CameraSelector.LENS_FACING_BACK
+            minZoom = camera.cameraInfo.zoomState.value?.minZoomRatio ?: 1f
+            cameraControl = camera.cameraControl
         } catch (e: Exception) {
             error = "Could not start the camera."
         }
     }
+
+    // Normal is 1x, Wide is the smallest zoom the back camera offers. Runs after every (re)bind too.
+    LaunchedEffect(wide, canWide, cameraControl) {
+        if (canWide) runCatching { cameraControl?.setZoomRatio(if (wide) minZoom else 1f) }
+    }
+
+    // Without this the screen times out after a while and Android stops the camera, which ends the recording.
+    SideEffect { previewView.keepScreenOn = recording != null }
+    DisposableEffect(Unit) { onDispose { previewView.keepScreenOn = false } }
 
     // Leaving this screen (to trim) lets go of the camera.
     DisposableEffect(Unit) {
@@ -240,6 +265,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
     }
 
     val isRecording = recording != null
+    val showRestartBanner = isRecording && elapsedMs >= maxMs - RESTART_WARNING_MS && !stopping
 
     if (banner != null && !isRecording) {
         Text(banner, color = Senses.Mint, fontSize = 13.sp, fontWeight = FontWeight.Medium)
@@ -267,7 +293,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
                 Spacer(Modifier.size(8.dp))
                 Text(formatClock(elapsedMs), color = Senses.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             }
-            if (elapsedMs >= maxMs - RESTART_WARNING_MS && !stopping) {
+            if (showRestartBanner) {
                 RestartBanner(
                     remainingMs = (maxMs - elapsedMs).coerceAtLeast(0),
                     onRestart = {
@@ -294,6 +320,15 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
                 modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
             )
         }
+        // Back camera only, and only if the phone can zoom out. Works while recording too (it is only the zoom).
+        // The restart banner takes this spot for the last 90 seconds.
+        if (canWide && !showRestartBanner) {
+            LensSwitch(
+                wide = wide,
+                onChange = { wide = it },
+                modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp),
+            )
+        }
     }
 
     Spacer(Modifier.height(12.dp))
@@ -317,6 +352,38 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
 internal fun formatClock(ms: Long): String {
     val s = ms / 1000
     return "%d:%02d".format(s / 60, s % 60)
+}
+
+/** Normal / Wide, two pills over the bottom of the preview. */
+@Composable
+private fun LensSwitch(wide: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier
+            .clip(RoundedCornerShape(percent = 50))
+            .background(Senses.BgDeep.copy(alpha = 0.6f))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        listOf(false to "Normal", true to "Wide").forEach { (isWide, label) ->
+            val selected = wide == isWide
+            Box(
+                Modifier
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(if (selected) Senses.Mint else androidx.compose.ui.graphics.Color.Transparent)
+                    .clickable(role = Role.RadioButton, onClickLabel = label) { onChange(isWide) }
+                    .padding(horizontal = 18.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    label,
+                    color = if (selected) Senses.BgDeep else Senses.Ink,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+        }
+    }
 }
 
 /** Shown over the preview in the last 90 seconds before the automatic restart. */
