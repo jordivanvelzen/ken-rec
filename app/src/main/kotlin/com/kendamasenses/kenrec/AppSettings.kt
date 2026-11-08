@@ -26,6 +26,16 @@ enum class StartCamera(val title: String) {
     BackWide("Wide"),
 }
 
+/** After this many seconds without a touch, the screen goes dark while recording. 0 means never. */
+val DIM_CHOICES = listOf(0, 10, 30, 60)
+const val DEFAULT_DIM_SECONDS = 30
+
+fun dimLabel(seconds: Int) = when {
+    seconds == 0 -> "Off"
+    seconds < 60 -> "$seconds s"
+    else -> "${seconds / 60} min"
+}
+
 /** A recording restarts after one of these many minutes. */
 val RESTART_CHOICES = listOf(15, 30, 45, 60)
 const val DEFAULT_RESTART_MINUTES = 45
@@ -46,6 +56,10 @@ class AppSettings(context: Context) {
     var startCamera: StartCamera
         get() = StartCamera.entries.firstOrNull { it.name == prefs.getString("start_camera", null) } ?: StartCamera.Front
         set(value) = prefs.edit().putString("start_camera", value.name).apply()
+
+    var dimAfterSeconds: Int
+        get() = prefs.getInt("dim_after_seconds", DEFAULT_DIM_SECONDS).takeIf { it in DIM_CHOICES } ?: DEFAULT_DIM_SECONDS
+        set(value) = prefs.edit().putInt("dim_after_seconds", value).apply()
 
     var quality: VideoQuality
         get() = VideoQuality.entries.firstOrNull { it.name == prefs.getString("quality", null) } ?: VideoQuality.Standard

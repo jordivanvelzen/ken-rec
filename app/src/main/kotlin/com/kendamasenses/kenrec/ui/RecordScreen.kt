@@ -72,7 +72,7 @@ import java.io.File
 import kotlin.coroutines.resume
 
 /** In the last stretch before the restart, the screen offers to restart right away. */
-private const val RESTART_WARNING_MS = 90_000L
+internal const val RESTART_WARNING_MS = 90_000L
 
 /** How long a stop may take before we give up and let the person try again. */
 private const val STOP_TIMEOUT_MS = 20_000L
@@ -98,32 +98,44 @@ fun RecordScreen(banner: String?, onRecorded: (String) -> Unit, onOpenSettings: 
         if (!cameraOk) launcher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO))
     }
 
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Logo()
-        Spacer(Modifier.height(12.dp))
-        if (cameraOk) {
-            CameraBody(micOk = micOk, banner = banner, onRecorded = onRecorded, onOpenSettings = onOpenSettings)
-        } else {
-            Column(
-                Modifier.weight(1f).fillMaxWidth(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    "Ken Rec needs the camera to record. The microphone is optional.",
-                    color = Senses.Ink,
-                    fontSize = 16.sp,
+    // What the dim screen needs to know about the recording (see DimWhileRecording).
+    val progress = remember { RecordingProgress() }
+    // Read once when the camera screen opens, like the other settings.
+    val dimAfterSeconds = remember { AppSettings(context).dimAfterSeconds }
+    DimWhileRecording(progress = progress, dimAfterSeconds = dimAfterSeconds) {
+        Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Logo()
+            Spacer(Modifier.height(12.dp))
+            if (cameraOk) {
+                CameraBody(
+                    micOk = micOk,
+                    banner = banner,
+                    onRecorded = onRecorded,
+                    onOpenSettings = onOpenSettings,
+                    progress = progress,
                 )
-                Spacer(Modifier.height(16.dp))
-                PillButton(
-                    text = "Open settings",
-                    onClick = {
-                        context.startActivity(
-                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                )
+            } else {
+                Column(
+                    Modifier.weight(1f).fillMaxWidth(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        "Ken Rec needs the camera to record. The microphone is optional.",
+                        color = Senses.Ink,
+                        fontSize = 16.sp,
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    PillButton(
+                        text = "Open settings",
+                        onClick = {
+                            context.startActivity(
+                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }
@@ -141,6 +153,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
     banner: String?,
     onRecorded: (String) -> Unit,
     onOpenSettings: () -> Unit,
+    progress: RecordingProgress,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -265,6 +278,12 @@ private fun androidx.compose.foundation.layout.ColumnScope.CameraBody(
     }
 
     val isRecording = recording != null
+    // Tell the dim screen how the recording is going. Only the dim screen reads these.
+    SideEffect {
+        progress.recording = isRecording
+        progress.elapsedMs = elapsedMs
+        progress.maxMs = maxMs
+    }
     val showRestartBanner = isRecording && elapsedMs >= maxMs - RESTART_WARNING_MS && !stopping
 
     if (banner != null && !isRecording) {
